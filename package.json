@@ -1,0 +1,30 @@
+{
+  "name": "atomicals_bech32",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest --runInBand",
+    "build:swc": "swc src --out-dir dist"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@bitcoinerlab/secp256k1": "^1.0.5",
+    "@noble/hashes": "^1.3.3",
+    "@swc/cli": "^0.1.63",
+    "@swc/core": "^1.3.99",
+    "@swc/jest": "^0.2.29",
+    "@types/jest": "^29.5.10",
+    "@types/node": "^20.10.4",
+    "bech32": "^2.0.0",
+    "bitcoinjs-lib": "^6.1.5",
+    "bs58check": "^3.0.1",
+    "eslint": "^8.54.0",
+    "jest": "29.7.0",
+    "jest-config": "^29.7.0",
+    "ts-jest": "^29.1.1",
+    "tslib": "^2.6.2"
+  }
+}
