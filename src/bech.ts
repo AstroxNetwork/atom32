@@ -1,8 +1,8 @@
 // import { isAddress } from '@Atomicals-js/utils';
 
+import * as bitcoin from 'bitcoinjs-lib';
 import { Network } from 'bitcoinjs-lib';
 import { detectAddressTypeToScripthash } from './utils';
-import * as bitcoin from 'bitcoinjs-lib';
 import { fromOutputScript } from 'bitcoinjs-lib/src/address';
 
 // import { toChecksumAddress } from './keyTool';
@@ -131,7 +131,7 @@ export const tHRP = 'tatom';
  *
  * groups buffers of a certain width to buffers of the desired width.
  *
- * For example, converts byte buffers to buffers of maximum 5 bit numbers,
+ * For example, convert byte buffers to buffers of maximum 5-bit numbers,
  * padding those numbers as necessary. Necessary for encoding Ethereum-style
  * addresses as bech32 ones.
  *
@@ -141,7 +141,7 @@ export const tHRP = 'tatom';
  * @param {boolean} pad
  * @returns {Buffer|null}
  */
-export const convertBits = (data: Buffer, fromWidth: number, toWidth: number, pad: boolean = true) => {
+export const convertBits = (data: Buffer, fromWidth: number, toWidth: number, pad: boolean = true): Buffer | null => {
   let acc = 0;
   let bits = 0;
   const ret = [];
@@ -180,8 +180,9 @@ export const convertBits = (data: Buffer, fromWidth: number, toWidth: number, pa
  * The expected format is atom1<address><checksum> where address and checksum
  * are the result of bech32 encoding a Buffer containing the address bytes.
  *
- * @param {string} 20 byte canonical address
- * @returns {string} 38 char bech32 bech32Encoded Atomicals address
+ * @returns {string} 38 char bech32 encoded Atomicals address
+ * @param {string} address - a valid Bitcoin-style address
+ * @param {string} useHRP - the human-readable part of the bech32 address
  */
 export const toAtom32 = (address: string, useHRP: string = HRP): string => {
   const { output } = detectAddressTypeToScripthash(address);
@@ -199,6 +200,8 @@ export const toAtom32 = (address: string, useHRP: string = HRP): string => {
  * fromBech32Address
  *
  * @param {string} address - a valid Atomicals bech32 address
+ * @param {string} network - a valid bitcoinjs-lib network
+ * @param {string} useHRP - the human-readable part of the bech32 address
  * @returns {string} a canonical Bitcoin-style address
  */
 export const fromAtom32 = (
@@ -223,6 +226,5 @@ export const fromAtom32 = (
   if (buf === null) {
     throw new Error('Could not convert buffer to bytes');
   }
-  const addr = fromOutputScript(buf, network);
-  return addr;
+  return fromOutputScript(buf, network);
 };

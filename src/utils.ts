@@ -1,82 +1,50 @@
 import bs58check from 'bs58check';
 import * as bitcoin from 'bitcoinjs-lib';
-import { sha256 } from '@noble/hashes/sha256';
 import { Network } from 'bitcoinjs-lib';
+import { sha256 } from '@noble/hashes/sha256';
 import * as ecc from '@bitcoinerlab/secp256k1';
 
 bitcoin.initEccLib(ecc);
 
-export enum AddressTypeString {
-  p2pkh = 'p2pkh',
+export enum AddressType {
   p2tr = 'p2tr',
-  p2sh = 'p2sh',
+  p2pkh = 'p2pkh',
+  p2sh_p2wpkh = 'p2sh_p2wpkh',
   p2wpkh = 'p2wpkh',
-  p2wpkh_testnet = 'p2wpkh_testnet',
-  p2tr_testnet = 'p2tr_testnet',
-  p2sh_testnet = 'p2sh_testnet',
-  p2pkh_testnet = 'p2pkh_testnet',
   unknown = 'unknown',
 }
 
-export enum AddressType {
-  p2pkh = 'p2pkh',
-  p2tr = 'p2tr',
-  p2sh = 'p2sh',
-  p2wpkh = 'p2wpkh',
-}
-
-export function getAddressType(address: string): AddressTypeString {
+export function getAddressType(address: string): AddressType {
   if (address.startsWith('bc1q')) {
-    return AddressTypeString.p2wpkh;
+    return AddressType.p2wpkh;
   } else if (address.startsWith('bc1p')) {
-    return AddressTypeString.p2tr;
+    return AddressType.p2tr;
   } else if (address.startsWith('1')) {
-    return AddressTypeString.p2pkh;
+    return AddressType.p2pkh;
   } else if (address.startsWith('3')) {
-    return AddressTypeString.p2sh;
-  } else if (address.startsWith('tb1q')) {
-    return AddressTypeString.p2wpkh_testnet;
-  } else if (address.startsWith('m')) {
-    return AddressTypeString.p2pkh_testnet;
-  } else if (address.startsWith('2')) {
-    return AddressTypeString.p2sh_testnet;
-  } else if (address.startsWith('tb1p')) {
-    return AddressTypeString.p2tr_testnet;
-  } else {
-    return AddressTypeString.unknown;
+    return AddressType.p2sh_p2wpkh;
   }
+  // testnet
+  else if (address.startsWith('tb1q')) {
+    return AddressType.p2wpkh;
+  } else if (address.startsWith('m') || address.startsWith('n')) {
+    return AddressType.p2pkh;
+  } else if (address.startsWith('2')) {
+    return AddressType.p2sh_p2wpkh;
+  } else if (address.startsWith('tb1p')) {
+    return AddressType.p2tr;
+  }
+
+  return AddressType.unknown;
 }
 
 export function stripAddressPrefix(str: string): string {
   if (str.startsWith('bc1q') || str.startsWith('bc1p') || str.startsWith('tb1q') || str.startsWith('tb1p')) {
     return str.slice(4);
-  } else if (str.startsWith('1') || str.startsWith('3') || str.startsWith('m') || str.startsWith('2')) {
+  } else if (str.startsWith('1') || str.startsWith('3') || str.startsWith('m') || str.startsWith('n') || str.startsWith('2')) {
     return str.slice(1);
   } else {
     return str;
-  }
-}
-
-export function addAddressPrefix(addressType: AddressTypeString, address: string): string {
-  switch (addressType) {
-    case AddressTypeString.p2wpkh:
-      return 'bc1q' + address;
-    case AddressTypeString.p2tr:
-      return 'bc1p' + address;
-    case AddressTypeString.p2pkh:
-      return '1' + address;
-    case AddressTypeString.p2sh:
-      return '3' + address;
-    case AddressTypeString.p2wpkh_testnet:
-      return 'tb1q' + address;
-    case AddressTypeString.p2tr_testnet:
-      return 'tb1p' + address;
-    case AddressTypeString.p2pkh_testnet:
-      return 'm' + address;
-    case AddressTypeString.p2sh_testnet:
-      return '2' + address;
-    default:
-      return address;
   }
 }
 
@@ -96,15 +64,9 @@ export function detectAddressTypeToScripthash(
   const __network = addressType.endsWith('testnet') ? 'testnet' : 'bitcoin';
 
   const _network = getNetwork(network ?? __network);
-  // Detect legacy address
-  try {
-    bitcoin.address.fromBase58Check(address);
-  } catch (err) {
-    /* empty */
-  }
 
   switch (addressType) {
-    case AddressTypeString.p2pkh: {
+    case AddressType.p2pkh: {
       const p2pkh = addressToP2PKH(address);
       const p2pkhBuf = Buffer.from(p2pkh, 'hex');
       return {
@@ -113,7 +75,7 @@ export function detectAddressTypeToScripthash(
         address,
       };
     }
-    case AddressTypeString.unknown: {
+    case AddressType.unknown: {
       throw 'unrecognized address';
     }
     default: {
@@ -140,8 +102,7 @@ export function getNetwork(network?: Network | string) {
 }
 
 export function detectScriptToAddressType(script: string, network?: Network | string): string {
-  const address = bitcoin.address.fromOutputScript(Buffer.from(script, 'hex'), getNetwork(network));
-  return address;
+  return bitcoin.address.fromOutputScript(Buffer.from(script, 'hex'), getNetwork(network));
 }
 
 export function addressToScripthash(address: string): string {
@@ -153,22 +114,18 @@ export function addressToScripthash(address: string): string {
 export function addressToP2PKH(address: string): string {
   const addressDecoded = bs58check.decode(address);
   const addressDecodedSub = Buffer.from(addressDecoded).toString('hex').substr(2);
-  const p2pkh = `76a914${addressDecodedSub}88ac`;
-  return p2pkh;
+  return `76a914${addressDecodedSub}88ac`;
 }
 
 export function addressToHash160(address: string): string {
   const addressDecoded = bs58check.decode(address);
-  const addressDecodedSub = addressDecoded.toString().substr(2);
-  return addressDecodedSub;
+  return addressDecoded.toString().substring(2);
 }
 
 export function hash160BufToAddress(hash160: Buffer): string {
-  const addressEncoded = bs58check.encode(hash160);
-  return addressEncoded;
+  return bs58check.encode(hash160);
 }
 
 export function hash160HexToAddress(hash160: string): string {
-  const addressEncoded = bs58check.encode(Buffer.from(hash160, 'hex'));
-  return addressEncoded;
+  return bs58check.encode(Buffer.from(hash160, 'hex'));
 }
